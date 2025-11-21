@@ -1195,6 +1195,13 @@ const App = () => {
     if (saved) {
       try {
         const parsedPosts = JSON.parse(saved);
+
+        // Calculate cutoff date (Yesterday)
+        const now = new Date();
+        now.setDate(now.getDate() - 1);
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        const cutoffDate = now.toISOString().split('T')[0];
+
         // Migrate data: ensure status and min/max levels exist
         const migratedPosts = parsedPosts.map((p: any) => ({
           ...p,
@@ -1210,7 +1217,16 @@ const App = () => {
             maxLevel: p.female.maxLevel || p.female.level || 'TB',
           }
         }));
-        setPosts(migratedPosts);
+
+        // Filter out posts older than yesterday
+        const validPosts = migratedPosts.filter((p: Post) => p.date >= cutoffDate);
+
+        setPosts(validPosts);
+
+        // Update localStorage if posts were cleaned up
+        if (validPosts.length !== parsedPosts.length) {
+           localStorage.setItem('badminton_posts', JSON.stringify(validPosts));
+        }
       } catch (e) {
         setPosts(MOCK_POSTS);
       }
